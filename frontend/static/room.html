@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Видеокомната</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .video-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .video-box {
+            flex: 1;
+            min-width: 300px;
+        }
+        video {
+            background: #222;
+            width: 100%;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #startBtn {
+            background: #28a745;
+            color: white;
+        }
+        #toggleVideoBtn {
+            background: #17a2b8;
+            color: white;
+        }
+        #toggleAudioBtn {
+            background: #ffc107;
+            color: #212529;
+        }
+        #screenShareBtn {
+            background: #6f42c1;
+            color: white;
+        }
+        #leaveBtn {
+            background: #dc3545;
+            color: white;
+        }
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            background: #6c757d !important;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        h3 {
+            margin-top: 0;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; color: #333;">Комната видеосвязи</h1>
+    
+    <div class="video-container">
+        <div class="video-box">
+            <h3>Ваше видео:</h3>
+            <video id="localVideo" autoplay muted playsinline></video>
+        </div>
+        <div class="video-box">
+            <h3>Участник:</h3>
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="startBtn">Начать звонок</button>
+        <button id="toggleVideoBtn" disabled>Камера (вкл)</button>
+        <button id="toggleAudioBtn" disabled>Микрофон (вкл)</button>
+        <button id="screenShareBtn" disabled>Демонстрация экрана</button>
+        <button id="leaveBtn" disabled>Завершить</button>
+    </div>
+
+    <script>
+        // Состояние приложения
+        const state = {
+            localStream: null,
+            screenStream: null,
+            isVideoOn: true,
+            isAudioOn: true,
+            isScreenSharing: false
+        };
+
+        // Элементы управления
+        const elements = {
+            startBtn: document.getElementById('startBtn'),
+            toggleVideoBtn: document.getElementById('toggleVideoBtn'),
+            toggleAudioBtn: document.getElementById('toggleAudioBtn'),
+            screenShareBtn: document.getElementById('screenShareBtn'),
+            leaveBtn: document.getElementById('leaveBtn'),
+            localVideo: document.getElementById('localVideo'),
+            remoteVideo: document.getElementById('remoteVideo')
+        };
+
+        // Инициализация медиаустройств
+        async function initMedia() {
+            try {
+                state.localStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+                
+                elements.localVideo.srcObject = state.localStream;
+                updateControls(true);
+                
+                // Для демонстрации - имитируем удаленного участника
+                setTimeout(() => {
+                    elements.remoteVideo.srcObject = state.localStream.clone();
+                }, 500);
+                
+            } catch (error) {
+                alert(`Ошибка: ${error.message}`);
+                console.error('Media Error:', error);
+            }
+        }
+
+        // Управление кнопками
+        function updateControls(isCallActive) {
+            elements.startBtn.disabled = isCallActive;
+            elements.toggleVideoBtn.disabled = !isCallActive;
+            elements.toggleAudioBtn.disabled = !isCallActive;
+            elements.screenShareBtn.disabled = !isCallActive;
+            elements.leaveBtn.disabled = !isCallActive;
+            
+            if (isCallActive) {
+                elements.toggleVideoBtn.textContent = `Камера (${state.isVideoOn ? 'вкл' : 'выкл'})`;
+                elements.toggleAudioBtn.textContent = `Микрофон (${state.isAudioOn ? 'вкл' : 'выкл'})`;
+                elements.screenShareBtn.textContent = state.isScreenSharing ? 
+                    'Остановить демонстрацию' : 'Демонстрация экрана';
+            }
+        }
+
+        // Обработчики событий
+        elements.startBtn.addEventListener('click', initMedia);
+
+        elements.toggleVideoBtn.addEventListener('click', () => {
+            const videoTrack = state.localStream.getVideoTracks()[0];
+            state.isVideoOn = !state.isVideoOn;
+            videoTrack.enabled = state.isVideoOn;
+            updateControls(true);
+        });
+
+        elements.toggleAudioBtn.addEventListener('click', () => {
+            const audioTrack = state.localStream.getAudioTracks()[0];
+            state.isAudioOn = !state.isAudioOn;
+            audioTrack.enabled = state.isAudioOn;
+            updateControls(true);
+        });
+
+        elements.screenShareBtn.addEventListener('click', async () => {
+            try {
+                if (!state.isScreenSharing) {
+                    state.screenStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: true,
+                        audio: false
+                    });
+                    
+                    elements.localVideo.srcObject = state.screenStream;
+                    state.isScreenSharing = true;
+                    
+                    // Автоматическое отключение при завершении демонстрации
+                    state.screenStream.getVideoTracks()[0].onended = () => {
+                        elements.localVideo.srcObject = state.localStream;
+                        state.isScreenSharing = false;
+                        updateControls(true);
+                    };
+                } else {
+                    state.screenStream.getTracks().forEach(track => track.stop());
+                    elements.localVideo.srcObject = state.localStream;
+                    state.isScreenSharing = false;
+                }
+                
+                updateControls(true);
+            } catch (error) {
+                console.log('Демонстрация экрана отменена');
+            }
+        });
+
+        elements.leaveBtn.addEventListener('click', () => {
+            // Останавливаем все медиапотоки
+            if (state.localStream) {
+                state.localStream.getTracks().forEach(track => track.stop());
+            }
+            if (state.screenStream) {
+                state.screenStream.getTracks().forEach(track => track.stop());
+            }
+            
+            // Сбрасываем состояние
+            elements.localVideo.srcObject = null;
+            elements.remoteVideo.srcObject = null;
+            state.isScreenSharing = false;
+            state.isVideoOn = true;
+            state.isAudioOn = true;
+            
+            updateControls(false);
+        });
+
+        // Проверка поддержки браузером
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert('Ваш браузер не поддерживает необходимые функции WebRTC');
+            elements.startBtn.disabled = true;
+        }
+    </script>
+</body>
+</html>
