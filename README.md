@@ -3,7 +3,7 @@
 
 1. Скачай проект, как Zip-архив и распакуй его
 2. Запусти vsCode и открой директорию с моим проектом
-3. Пропиши  "pip install -r backend/requirements.txt", а потом пропиши ".venv\Scripts\activate"
+3. Пропиши "cd .\backend\" и "pip install -r requirements.txt", а потом пропиши ".venv\Scripts\activate"
 4. Теперь остаётся запуск проекта и тоже через терминал прописать "uvicorn main:app --reload"
 5.  По стандарту Uvicorn прогоняется через "http://127.0.0.1:8000/"
 6.  Пользуйся им, но аккуратно пожалуйста!!!
