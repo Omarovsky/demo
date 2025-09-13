@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Чат с комнатами</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        input, button {
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        #roomLink {
+            display: none;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WebRTC Чат с Демонстрацией Экрана</h1>
+        
+        <div>
+            <button id="createRoomBtn">Создать новую комнату</button>
+        </div>
+        
+        <div>
+            <input type="text" id="roomIdInput" placeholder="Введите ID комнаты">
+            <button id="joinRoomBtn">Присоединиться</button>
+        </div>
+        
+        <div id="roomLink"></div>
+    </div>
+
+    <script>
+        document.getElementById('createRoomBtn').addEventListener('click', async () => {
+            const response = await fetch('/create_room');
+            const { room_id } = await response.json();
+            
+            const roomLink = `${window.location.origin}/room/${room_id}`;
+            document.getElementById('roomLink').innerHTML = `
+                Ссылка на комнату: <a href="${roomLink}" target="_blank">${roomLink}</a>
+                <button onclick="copyToClipboard('${roomLink}')">Копировать</button>
+            `;
+            document.getElementById('roomLink').style.display = 'block';
+            
+            // Автоматический переход в комнату
+            window.location.href = `/room/${room_id}`;
+        });
+
+        document.getElementById('joinRoomBtn').addEventListener('click', () => {
+            const roomId = document.getElementById('roomIdInput').value.trim();
+            if (roomId) {
+                window.location.href = `/room/${roomId}`;
+            } else {
+                alert('Введите ID комнаты!');
+            }
+        });
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            alert('Ссылка скопирована!');
+        }
+    </script>
+</body>
+</html>
